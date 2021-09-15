@@ -1,0 +1,15 @@
+[package]
+name = "z80-mbc2-emu"
+version = "0.1.0"
+authors = ["Ivan Izaguirre <ivanizag@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+#iz80 = "^0.3.2"
+iz80 = {path = "../iz80"}
+
+[target.'cfg(windows)'.dependencies]
+crossterm = "^0.17"
+
+[target.'cfg(unix)'.dependencies]
+termios = "^0.3"
