@@ -47,7 +47,7 @@ impl Console {
                     true
                 } else {
                     // Avoid 100% CPU usage waiting for input.
-                    //thread::sleep(Duration::from_nanos(100));
+                    thread::sleep(Duration::from_nanos(100));
                     false
                 }
             }

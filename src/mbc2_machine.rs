@@ -1,5 +1,7 @@
 use iz80::Machine;
 
+use super::filesystem::FileSystem;
+
 #[cfg(windows)]
 use super::console_windows::Console;
 #[cfg(unix)]
@@ -15,9 +17,12 @@ pub struct Mbc2Machine {
     bank: u8,
     opcode: u8,
     last_rx_is_empty: bool,
-
-    console: Console,
+    io_byte_count: u32,
+    track_sel_lo: u8,
     pub quit: bool,
+
+    con: Console,
+    fs: FileSystem, 
 }
 
 impl Mbc2Machine {
@@ -27,13 +32,14 @@ impl Mbc2Machine {
             bank: 0,
             opcode: OPCODE_NOP,
             last_rx_is_empty: false,
-            console: Console::new(),
+            io_byte_count: 0,
+            track_sel_lo: 0,
             quit: false,
+
+            con: Console::new(),
+            fs: FileSystem::new(),
         }
     }
-}
-
-impl Mbc2Machine {
     fn decode_address(&self, address: u16) -> usize {
         let a15 = (address & 0x8000) != 0;
         let base = (address & 0x7fff) as usize;
@@ -53,8 +59,6 @@ impl Mbc2Machine {
 }
 
 impl Machine for Mbc2Machine {
-
-
     fn peek(&self, address: u16) -> u8 {
         let ram_address = self.decode_address(address);
         //println!("$$$ {:05x}", ram_address);
@@ -69,6 +73,51 @@ impl Machine for Mbc2Machine {
         self.mem[ram_address] = value;
     }
 
+    fn port_out(&mut self, address: u16, value: u8) {
+        //println!("OUT({:04x}, {:02x})", address, value);
+        let a0 = (address & 1) == 1;
+        if a0 {
+            // Store opcode
+            self.opcode = value;
+            self.io_byte_count = 0;
+        } else {
+            match self.opcode {
+                0x01 => { // SERIAL TX
+                    self.con.put(value)
+                },
+                0x09 => { // SELDISK
+                    self.fs.select_disk(0/*CPM22*/, value)
+                }
+                0x0a => { // SELTRACK
+                    if self.io_byte_count == 0 {
+                        self.track_sel_lo = value;
+                        self.io_byte_count += 1
+                    } else {
+                        let track: u16 = ((value as u16) << 8) + self.track_sel_lo as u16;
+                        self.fs.select_track(track);
+                        self.opcode = OPCODE_NOP;
+                    }
+                }
+                0x0b => { // SELSECT
+                    self.fs.select_sector(value)
+                }
+                // 0x0c => { // WRITESECT
+                0x0d => { // SETBANK
+                    if value <= 2 {
+                        self.bank = value
+                    }
+                },
+                _ => {
+                    panic!("Not implemented out opcode {:02x},{}", self.opcode, value);
+                }
+            }
+            if self.opcode != 0x0a && self.opcode != 0x0c {
+                // All done for the single byte opcodes
+                self.opcode = OPCODE_NOP;
+            }
+        }
+    }
+
     fn port_in(&mut self, address: u16) -> u8 {
         let a0 = (address & 1) == 1;
         //println!("IN({:04x})", address);
@@ -80,8 +129,8 @@ impl Machine for Mbc2Machine {
             // NOTE 3: This is the only I/O that do not require any previous STORE OPCODE operation (for fast polling).
             // NOTE 4: A "RX buffer empty" flag and a "Last Rx char was empty" flag are available in the SYSFLAG opcode 
             //         to allow 8 bit I/O.
-            if self.console.status() {
-                let ch = self.console.read();
+            if self.con.status() {
+                let ch = self.con.read();
                 if ch == 3 {
                     self.quit = true;
                 }
@@ -110,7 +159,7 @@ impl Machine for Mbc2Machine {
                     //
                     // NOTE: Currently only D0-D3 are used
                     let mut sysflags: u8 = 0;
-                    if self.console.status() {
+                    if self.con.status() {
                         sysflags += 0b0100;
                     }
                     if self.last_rx_is_empty {
@@ -118,38 +167,26 @@ impl Machine for Mbc2Machine {
                     }
                     sysflags
                 },
-                _ => {
-                    panic!("Not implemented in opcode {}", self.opcode);
+                0x85 => { // ERRDISK
+                    self.fs.get_last_error()
                 }
-            }
-        }
-
-    }
-
-    fn port_out(&mut self, address: u16, value: u8) {
-        //println!("OUT({:04x}, {:02x})", address, value);
-        let a0 = (address & 1) == 1;
-        if a0 {
-            // Store opcode
-            self.opcode = value;
-        } else {
-            match self.opcode {
-                0x01 => { // Serial transmission
-                    self.console.put(value)
-                },
-                0x0d => { // Low memory bank selection
-                    if value <= 2 {
-                        self.bank = value
+                0x86 => { // READSECT
+                    if self.io_byte_count == 0 {
+                        self.fs.seek();
                     }
-                },
+
+                    let value = self.fs.read();
+                    self.io_byte_count += 1;
+                    if self.io_byte_count >= 512 {
+                        self.opcode = OPCODE_NOP;
+                    }
+                    value
+                }
                 _ => {
-                    panic!("Not implemented out opcode {},{}", self.opcode, value);
+                    panic!("Not implemented in opcode {:02x}", self.opcode);
                 }
             }
-            if self.opcode != 0x0a && self.opcode != 0x0c {
-                // All done for the single byte opcodes
-                self.opcode = OPCODE_NOP;
-            }
         }
+
     }
 }

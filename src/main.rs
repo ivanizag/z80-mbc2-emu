@@ -3,6 +3,7 @@ use std::time::Duration;
 
 use iz80::*;
 
+mod filesystem;
 mod mbc2_machine;
 
 #[cfg(windows)]
@@ -12,9 +13,9 @@ mod console_unix;
 
 use self::mbc2_machine::Mbc2Machine;
 
-static BOOT_BASIC: &'static [u8] = include_bytes!("../rom/basic47.bin");
-static BOOT_FORTH: &'static [u8] = include_bytes!("../rom/forth13.bin");
-static BOOT_CPM22: &'static [u8] = include_bytes!("../rom/cpm22.bin");
+static BOOT_BASIC: &'static [u8] = include_bytes!("../sd/basic47.bin");
+static BOOT_FORTH: &'static [u8] = include_bytes!("../sd/forth13.bin");
+static BOOT_CPM22: &'static [u8] = include_bytes!("../sd/cpm22.bin");
 
 fn main() {
 
