@@ -101,7 +101,17 @@ impl Machine for Mbc2Machine {
                 0x0b => { // SELSECT
                     self.fs.select_sector(value)
                 }
-                // 0x0c => { // WRITESECT
+                0x0c => { // WRITESECT
+                    if self.io_byte_count == 0 {
+                        self.fs.seek();
+                    }
+
+                    self.fs.write(value);
+                    self.io_byte_count += 1;
+                    if self.io_byte_count >= 512 {
+                        self.opcode = OPCODE_NOP;
+                    }
+                }
                 0x0d => { // SETBANK
                     if value <= 2 {
                         self.bank = value

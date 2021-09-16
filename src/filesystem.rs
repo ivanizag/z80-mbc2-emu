@@ -2,6 +2,7 @@ use std::fs;
 use std::io;
 use std::io::Seek;
 use std::io::Read;
+use std::io::Write;
 
 const TRACKS: u16 = 512;
 const SECTORS: u8 = 32;
@@ -121,12 +122,32 @@ impl FileSystem  {
                     Err(_) => FsError::DiskError,
                     Ok(_) => {
                         value = buffer[0];
-                        FsError::Ok        
+                        FsError::Ok
                     }
                 }
             }
         };
         value
+    }
+
+    pub fn write(&mut self, data: u8) {
+        if self.last_error != FsError::Ok {
+            return
+        }
+        self.last_error = match self.file.as_mut() {
+            None => FsError::NotOpened,
+            Some(f) => {
+                let mut buffer: [u8; 1] = [0; 1];
+                buffer[0] = data;
+                match f.write(&mut buffer) {
+                    Err(_) => FsError::DiskError,
+                    Ok(_) => FsError::Ok
+                }
+            }
+        };
+
+
+
     }
 
 }
