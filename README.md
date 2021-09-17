@@ -70,4 +70,4 @@ This emulator emulates the Z80 and provides the same services given by the Atmeg
 - Real time clock services
 - GPIO services
 - User led and button services
-- Test in Windows and MacOS
+- Test in MacOS
