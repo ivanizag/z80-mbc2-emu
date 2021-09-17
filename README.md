@@ -2,7 +2,7 @@
 
 ## What is this?
 
-This is an emulator to run the ROM and disk images prepared for the Just4Fun's Z80-MBC2. The Z80-MBC2 is an easy to build Z80 single board computer with just 4 ICs. See [Z80-MBC2: a 4 ICs homebrew Z80 computer](https://hackaday.io/project/159973-z80-mbc2-a-4-ics-homebrew-z80-computer). It can be used to test the SD content on a Linux, MacOS or Windows computer.
+This is an emulator to run the ROM and disk images prepared for the Just4Fun's Z80-MBC2. The Z80-MBC2 is an easy to build Z80 single board computer with just 4 ICs. See [Z80-MBC2: a 4 ICs homebrew Z80 computer](https://hackaday.io/project/159973-z80-mbc2-a-4-ics-homebrew-z80-computer). This emulator can be used to test the SD content on a Linux, MacOS or Windows computer.
 
 ## What it does?
 
@@ -11,10 +11,10 @@ The emulator is based on the S220718-R240620 version of the Z80-MBC2 firmware. I
 ## Installation
 Extract the [latest zip](https://github.com/ivanizag/z80-mbc2-emu/releases) for Linux, MacOS or Windows.
 
-The Z80-MBC2 SD contents must be extraced to a directory named `sd`. You can run `download.sh` or `download.bat` to automatically down and extarct the files from  https://cdn.hackaday.io/files/1599736844284832/SD-S220718-R240620-v1.zip .
+The Z80-MBC2 SD contents must be extraced to a directory named `sd`. You can run `download.sh` or `download.bat` to automatically download and extract the files from  https://cdn.hackaday.io/files/1599736844284832/SD-S220718-R240620-v1.zip .
 
 ## Usage
-To know the boot options available execute `z80-mbc2-emu` without parameters:
+To list the boot options available, execute `z80-mbc2-emu` without parameters:
 ```
 $ ./z80-mbc2-emu 
 Usage: z80-mbc2-emu IMAGE
@@ -31,7 +31,7 @@ Usage: z80-mbc2-emu IMAGE
 Download the images from https://cdn.hackaday.io/files/1599736844284832/S220718-R240620_IOS-Z80-MBC2.zip into the 'sd' directory.
 ```
 
-To boot on any of the available environments execute `z80_mbc2_emu` with the code of the environment. For example:
+To boot any of the available environments, execute `z80_mbc2_emu` with the code of the environment. For example:
 ```
 $ ./z80-mbc2-emu cpm22
 z80-mbc2-emu https://github.com/ivanizag/iz-cpm
@@ -59,9 +59,9 @@ Press control-c to exit the emulation.
 
 ## How does it work?
 
-The Z80-MBC2 has a clever design based on a Z80 and a memory IC, both controlled by an Atmega microcontroller. The Atmega is able to put info on the data bus and can inject content to the RAM IC by generating code on the fly. It can also respond to IN and OUT ports with 1 bit adressing. It uses that as the interface with the Z80 programs. Via this interface it provides services related with the serial port, the SD card storage, the real time clock, the user led and button, and the GPIO.
+The Z80-MBC2 has a clever design based on a Z80 and a memory IC, both controlled by an Atmega microcontroller. The Atmega is able to put bytes on the data bus and can inject content to the RAM IC by generating code on the fly. It can also respond to IN and OUT ports with 1 bit adressing. It uses that as the interface with the Z80 programs. Via this interface it provides services related with the serial port, the SD card storage, the real time clock, the user led and button, and the GPIO.
 
-This emulator emulates the Z80 and provides the same services given by the Atmega using the same IN and OUT ports. Instead of the serial port it uses the terminal. Instead of the SD it uses a directory named `sd` with the same contents.
+This emulator emulates the Z80 and provides the same services given by the Atmega using the same IN and OUT ports. Instead of the serial port, it uses the terminal. Instead of the SD, it uses a directory named `sd` with the same contents.
 
 ## TODO
 
