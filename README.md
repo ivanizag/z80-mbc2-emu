@@ -6,13 +6,14 @@ This is an emulator to run the ROM and disk images prepared for the Just4Fun's Z
 
 ## What it does?
 
-The emulator is based on the `S220718-R240620` version of the Z80-MBC2 firmware. It can run `Forth`, `CP/M 2.2`, `QP/M 2.71`, `CP/M 3.0`, `UCSD Pascal` and `Collapse OS`.
+The emulator is based on the S220718-R240620 version of the Z80-MBC2 firmware. It can run Forth, CP/M 2.2, QP/M 2.71, CP/M 3.0, UCSD Pascal and Collapse OS.
 
+## Installation
+Extract the [latest zip](https://github.com/ivanizag/z80-mbc2-emu/releases) for Linux, MacOS or Windows.
+
+The Z80-MBC2 SD contents must be extraced to a directory named `sd`. You can run `download.sh` or `download.bat` to automatically down and extarct the files from  https://cdn.hackaday.io/files/1599736844284832/SD-S220718-R240620-v1.zip .
 
 ## Usage
-
-The Z80-MBC2 SD contents must be extraced to a directory named `sd`. Use the zip file in https://cdn.hackaday.io/files/1599736844284832/SD-S220718-R240620-v1.zip .
-
 To know the boot options available execute `z80-mbc2-emu` without parameters:
 ```
 $ ./z80-mbc2-emu 

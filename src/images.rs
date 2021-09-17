@@ -46,7 +46,7 @@ const USAGE: &'static str =
 
 const USAGE2: &'static str =
 "
-Download the images from https://cdn.hackaday.io/files/1599736844284832/S220718-R240620_IOS-Z80-MBC2.zip into the 'sd' directory.
+Download the images from https://cdn.hackaday.io/files/1599736844284832/SD-S220718-R240620-v1.zip into the 'sd' directory.
 ";
 
 pub fn select_image() -> &'static ImageDefinition {

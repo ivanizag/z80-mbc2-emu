@@ -6,11 +6,8 @@ use crossterm::event;
 use crossterm::queue;
 use crossterm::style;
 
-use super::translate::Adm3aToAnsi;
-
 pub struct Console {
     next_char: Option<u8>,
-    translator: Adm3aToAnsi
 }
 
 impl Console {
@@ -19,7 +16,6 @@ impl Console {
 
         Console {
             next_char: None,
-            translator: Adm3aToAnsi::new(),
         }
     }
 }
@@ -66,10 +62,8 @@ impl Console {
     }
 
     pub fn put(&mut self, ch: u8) {
-        if let Some(sequence) = self.translator.translate(ch) {
-            queue!(stdout(), style::Print(sequence)).unwrap();
-            stdout().flush().unwrap();
-        }
+        queue!(stdout(), style::Print(ch as char)).unwrap();
+        stdout().flush().unwrap();
     }
 }
 
