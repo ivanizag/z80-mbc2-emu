@@ -67,7 +67,5 @@ This emulator emulates the Z80 and provides the same services given by the Atmeg
 
 - Support interrupt driven serial transmission to support the Basic image
 - Change the way to exit to host to allow control-c to be used on the emulation.
-- Real time clock services
-- GPIO services
-- User led and button services
+- User led, button and GPIO is not connected to anything
 - Test in MacOS

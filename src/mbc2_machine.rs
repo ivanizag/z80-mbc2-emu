@@ -1,3 +1,5 @@
+use chrono::{DateTime, Local, Datelike, Timelike};
+
 use iz80::Machine;
 
 use super::filesystem::FileSystem;
@@ -20,10 +22,19 @@ pub struct Mbc2Machine {
     last_rx_is_empty: bool,
     io_byte_count: u32,
     track_sel_lo: u8,
+    last_time: DateTime<Local>,
     pub quit: bool,
 
     con: Console,
     fs: FileSystem, 
+
+    user_led: bool,
+    gpio_a: u8,
+    gpio_b: u8,
+    io_dir_a: u8,
+    io_dir_b: u8,
+    ggpu_a: u8,
+    ggpu_b: u8,
 
     trace: bool,
 }
@@ -38,11 +49,20 @@ impl Mbc2Machine {
             last_rx_is_empty: false,
             io_byte_count: 0,
             track_sel_lo: 0,
+            last_time: Local::now(),
             quit: false,
 
             con: Console::new(),
             fs: FileSystem::new(),
 
+            user_led: false,
+            gpio_a: 0,
+            gpio_b: 0,
+            io_dir_a: 0,
+            io_dir_b: 0,
+            ggpu_a: 0,
+            ggpu_b: 0,
+        
             trace: false,
         }
     }
@@ -94,7 +114,14 @@ impl Machine for Mbc2Machine {
         } else {
             let mut implemented = true;
             match self.opcode {
+                0x00 => self.user_led = value & 1 != 0, // USER LED
                 0x01 => self.con.put(value), // SERIAL TX
+                0x03 => self.gpio_a = value, // GPIOA WRITE
+                0x04 => self.gpio_b = value, // GPIOB WRITE
+                0x05 => self.io_dir_a = value, // IODIRA WRITE
+                0x06 => self.io_dir_b = value, // IODIRB WRITE
+                0x07 => self.ggpu_a = value, // GGPUAA WRITE
+                0x08 => self.ggpu_b = value, // GGPUAB WRITE
                 0x09 => self.fs.select_disk(self.disk_set, value), // SELDISK
                 0x0a => { // SELTRACK
                     if self.io_byte_count == 0 {
@@ -175,6 +202,9 @@ impl Machine for Mbc2Machine {
             // Execute opcode
             let mut implemented = true;
             let value = match self.opcode {
+                0x80 => 0, /* not pressed */ // USER KEY
+                0x81 => self.gpio_a, // GPIOA READ
+                0x82 => self.gpio_b, // GPIOB READ
                 0x83 => {
                     // SYSFLAGS (Various system flags for the OS):
                     //     I/O DATA:    D7 D6 D5 D4 D3 D2 D1 D0
@@ -189,7 +219,7 @@ impl Machine for Mbc2Machine {
                     //                   X  X  X  X  1  X  X  X    Previous RX char was a "buffer empty" flag
                     //
                     // NOTE: Currently only D0-D3 are used
-                    let mut sysflags: u8 = 0;
+                    let mut sysflags: u8 = 0b0010;
                     if self.con.status() {
                         sysflags += 0b0100;
                     }
@@ -197,6 +227,26 @@ impl Machine for Mbc2Machine {
                         sysflags += 0b1000;
                     }
                     sysflags
+                },
+                0x84 => {
+                    if self.io_byte_count == 0 {
+                        self.last_time = Local::now();
+                    }
+                    let value = match self.io_byte_count {
+                        0 => self.last_time.second() as u8,
+                        1 => self.last_time.minute() as u8,
+                        2 => self.last_time.hour() as u8,
+                        3 => self.last_time.day() as u8,
+                        4 => self.last_time.month() as u8,
+                        5 => (self.last_time.year() % 100) as u8,
+                        6 => 21, // 21º Celsius
+                        _ => 0,
+                    };
+                    self.io_byte_count += 1;
+                    if self.io_byte_count >= 7 {
+                        self.opcode = OPCODE_NOP;
+                    }
+                    value
                 },
                 0x85 => self.fs.get_last_error(), // ERRDISK
                 0x86 => { // READSECT
