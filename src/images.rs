@@ -14,19 +14,27 @@ pub struct ImageDefinition {
     pub file: &'static str,
     pub address: u16,
     pub disk_set: u8,
+    pub ints: bool,
 }
 
 const IMAGES_FOLDER: &str = "sd";
 
 
 static IMAGES: [ImageDefinition; 7] = [
-    ImageDefinition {id: "basic", name: "Basic",       file: "basic47.bin",  address: 0x0000, disk_set: 0xff},
-    ImageDefinition {id: "forth", name: "Forth",       file: "forth13.bin",  address: 0x0100, disk_set: 0xff},
-    ImageDefinition {id: "autoboot", name: "Autoboot",    file: "autoboot.bin", address: 0x0000, disk_set: 0xff},
-    ImageDefinition {id: "cpm22", name: "CP/M 2.2",    file: "cpm22.bin",    address: 0xD1E0, disk_set: 0},
-    ImageDefinition {id: "qpm", name: "QP/M 2.71",   file: "QPMLDR.BIN",   address: 0x0080, disk_set: 1},
-    ImageDefinition {id: "cpm3", name: "CP/M 3.0",    file: "CPMLDR.COM",   address: 0x0100, disk_set: 2},
-    ImageDefinition {id: "pascal", name: "UCSD Pascal", file: "ucsdldr.bin",  address: 0x0000, disk_set: 3},
+    ImageDefinition {id: "basic", name: "Basic", file: "basic47.bin",
+        address: 0x0000, disk_set: 0xff, ints: true},
+    ImageDefinition {id: "forth", name: "Forth", file: "forth13.bin",
+        address: 0x0100, disk_set: 0xff, ints: false},
+    ImageDefinition {id: "autoboot", name: "Autoboot", file: "autoboot.bin",
+        address: 0x0000, disk_set: 0xff, ints: false},
+    ImageDefinition {id: "cpm22", name: "CP/M 2.2", file: "cpm22.bin",
+        address: 0xD1E0, disk_set: 0, ints: false},
+    ImageDefinition {id: "qpm", name: "QP/M 2.71", file: "QPMLDR.BIN",
+        address: 0x0080, disk_set: 1, ints: false},
+    ImageDefinition {id: "cpm3", name: "CP/M 3.0", file: "CPMLDR.COM",
+        address: 0x0100, disk_set: 2, ints: false},
+    ImageDefinition {id: "pascal", name: "UCSD Pascal", file: "ucsdldr.bin",
+        address: 0x0000, disk_set: 3, ints: false},
 ];
 
 const USAGE: &'static str =
@@ -49,7 +57,7 @@ pub fn select_image() -> &'static ImageDefinition {
     let selection = &args[1];
 
     for i in 0..IMAGES.len() {
-        if IMAGES[i].id == selection {
+        if IMAGES[i].id == selection && !IMAGES[i].ints{
             return &IMAGES[i];
         }
     }
@@ -57,14 +65,15 @@ pub fn select_image() -> &'static ImageDefinition {
     println!("image '{}' not found.", selection);
     usage();
     process::exit(1);
-
 }
 
 pub fn usage() {
     println!("{}", USAGE);
     for i in 0..IMAGES.len() {
         let filename = Path::new(IMAGES_FOLDER).join(Path::new(IMAGES[i].file));
-        println!("    {} for {} using {}", IMAGES[i].id, IMAGES[i].name, filename.to_str().unwrap());
+        if !IMAGES[i].ints {
+            println!("    {} for {} using {}", IMAGES[i].id, IMAGES[i].name, filename.to_str().unwrap());
+        }
     }
     println!("{}", USAGE2);
 }

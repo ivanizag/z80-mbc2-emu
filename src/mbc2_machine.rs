@@ -24,6 +24,8 @@ pub struct Mbc2Machine {
 
     con: Console,
     fs: FileSystem, 
+
+    trace: bool,
 }
 
 impl Mbc2Machine {
@@ -40,6 +42,8 @@ impl Mbc2Machine {
 
             con: Console::new(),
             fs: FileSystem::new(),
+
+            trace: false,
         }
     }
 
@@ -88,13 +92,10 @@ impl Machine for Mbc2Machine {
             self.opcode = value;
             self.io_byte_count = 0;
         } else {
+            let mut implemented = true;
             match self.opcode {
-                0x01 => { // SERIAL TX
-                    self.con.put(value)
-                },
-                0x09 => { // SELDISK
-                    self.fs.select_disk(self.disk_set, value)
-                }
+                0x01 => self.con.put(value), // SERIAL TX
+                0x09 => self.fs.select_disk(self.disk_set, value), // SELDISK
                 0x0a => { // SELTRACK
                     if self.io_byte_count == 0 {
                         self.track_sel_lo = value;
@@ -105,9 +106,7 @@ impl Machine for Mbc2Machine {
                         self.opcode = OPCODE_NOP;
                     }
                 }
-                0x0b => { // SELSECT
-                    self.fs.select_sector(value)
-                }
+                0x0b => self.fs.select_sector(value), // SELSECT
                 0x0c => { // WRITESECT
                     if self.io_byte_count == 0 {
                         self.fs.seek();
@@ -124,20 +123,32 @@ impl Machine for Mbc2Machine {
                         self.bank = value
                     }
                 },
-                _ => {
-                    panic!("Not implemented out opcode {:02x},{}", self.opcode, value);
-                }
+                _ => implemented = false,
             }
+
+            if !implemented {
+                println!("<<{} not implemented>>",
+                    opcode_name(self.opcode));
+                self.quit = true;
+            } else if self.trace
+                    && self.opcode != OPCODE_NOP
+                    && self.opcode != 0x01
+                    && self.opcode != 0x0d
+                    && (self.opcode != 0x0c || self.io_byte_count == 1) {
+                println!("<<{}({:02x}) -> {}>>",
+                    opcode_name(self.opcode), value, self.fs.get_last_error());
+            }
+
             if self.opcode != 0x0a && self.opcode != 0x0c {
                 // All done for the single byte opcodes
                 self.opcode = OPCODE_NOP;
             }
+
         }
     }
 
     fn port_in(&mut self, address: u16) -> u8 {
         let a0 = (address & 1) == 1;
-        //println!("IN({:04x})", address);
         if a0 {
             // Serial reception
 
@@ -162,7 +173,8 @@ impl Machine for Mbc2Machine {
             }
         } else {
             // Execute opcode
-            match self.opcode {
+            let mut implemented = true;
+            let value = match self.opcode {
                 0x83 => {
                     // SYSFLAGS (Various system flags for the OS):
                     //     I/O DATA:    D7 D6 D5 D4 D3 D2 D1 D0
@@ -186,9 +198,7 @@ impl Machine for Mbc2Machine {
                     }
                     sysflags
                 },
-                0x85 => { // ERRDISK
-                    self.fs.get_last_error()
-                }
+                0x85 => self.fs.get_last_error(), // ERRDISK
                 0x86 => { // READSECT
                     if self.io_byte_count == 0 {
                         self.fs.seek();
@@ -201,11 +211,55 @@ impl Machine for Mbc2Machine {
                     }
                     value
                 }
+                0x87 => 0, //SDMOUNT
                 _ => {
-                    panic!("Not implemented in opcode {:02x}", self.opcode);
+                    implemented = false;
+                    0
                 }
+            };
+            if !implemented {
+                println!("<<{} not implemented>>",
+                    opcode_name(self.opcode));
+                self.quit = true;
+            } else if self.trace
+                    && self.opcode != OPCODE_NOP
+                    && self.opcode != 0x83
+                    && (self.opcode != 0x86 || self.io_byte_count == 1) {
+                println!("<<{} -> {:02x}, {}>>",
+                opcode_name(self.opcode), value, self.fs.get_last_error());
             }
+            value
         }
+    }
+}
 
+fn opcode_name(opcode: u8) -> &'static str {
+    match opcode {
+        0x00 => "USER LED",
+
+        0x01 => "SERIAL TX",
+        0x03 => "GPIOA W",
+        0x04 => "GPIOB W",
+        0x05 => "IODIRA W",
+        0x06 => "IODIRB W",
+        0x07 => "GPPUA W",
+        0x08 => "GPPUB W",
+        0x09 => "SELDISK",
+        0x0A => "SELTRACK",
+        0x0B => "SELSECT",
+        0x0C => "WRITESECT",
+        0x0D => "SETBANK",
+
+        0x80 => "USER KEY",
+        0x81 => "GPIOA R",
+        0x82 => "GPIOB R",
+        0x83 => "SYSFLAGS",
+        0x84 => "DATETIME",
+        0x85 => "ERRDISK",
+        0x86 => "READSECT",
+        0x87 => "SDMOUNT",
+
+        0xFF => "NOP",
+        _ => "UNKNOWN"
     }
 }

@@ -15,7 +15,7 @@ use self::images::*;
 // Welcome message
 const WELCOME: &'static str =
 "z80-mbc2-emu https://github.com/ivanizag/iz-cpm
-Emulation of the Z80-MBC2, https://github.com/SuperFabius/Z80-MBC2
+Emulation of the Z80-MBC2, https://hackaday.io/project/159973
 
 Press ctrl-c to return to host";
 
