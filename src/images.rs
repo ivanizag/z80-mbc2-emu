@@ -20,7 +20,7 @@ pub struct ImageDefinition {
 const IMAGES_FOLDER: &str = "sd";
 
 
-static IMAGES: [ImageDefinition; 7] = [
+static IMAGES: [ImageDefinition; 8] = [
     ImageDefinition {id: "basic", name: "Basic", file: "basic47.bin",
         address: 0x0000, disk_set: 0xff, ints: true},
     ImageDefinition {id: "forth", name: "Forth", file: "forth13.bin",
@@ -35,6 +35,8 @@ static IMAGES: [ImageDefinition; 7] = [
         address: 0x0100, disk_set: 2, ints: false},
     ImageDefinition {id: "pascal", name: "UCSD Pascal", file: "ucsdldr.bin",
         address: 0x0000, disk_set: 3, ints: false},
+    ImageDefinition {id: "collapse", name: "Collapse OS", file: "cos.bin",
+        address: 0x0000, disk_set: 4, ints: false},
 ];
 
 const USAGE: &'static str =
