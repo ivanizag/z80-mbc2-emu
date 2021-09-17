@@ -82,6 +82,9 @@ pub fn usage() {
 
 pub fn load_image(machine: &mut Mbc2Machine, image: &ImageDefinition) -> bool {
     let filename = Path::new(IMAGES_FOLDER).join(Path::new(image.file));
+
+    println!("Loading {}", filename.to_string_lossy());
+
     let mut file = match fs::File::open(&filename) {
         Ok(file) => file,
         Err(error) => {
