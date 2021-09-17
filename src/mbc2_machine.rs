@@ -13,6 +13,7 @@ const OPCODE_NOP: u8 = 0xff;
 
 pub struct Mbc2Machine {
     mem: [u8; RAM_SIZE],
+    disk_set: u8,
 
     bank: u8,
     opcode: u8,
@@ -29,6 +30,7 @@ impl Mbc2Machine {
     pub fn new() -> Mbc2Machine {
         Mbc2Machine {
             mem: [0; RAM_SIZE],
+            disk_set: 0xff,
             bank: 0,
             opcode: OPCODE_NOP,
             last_rx_is_empty: false,
@@ -40,6 +42,11 @@ impl Mbc2Machine {
             fs: FileSystem::new(),
         }
     }
+
+    pub fn set_disk_set(&mut self, disk_set: u8) {
+        self.disk_set = disk_set;
+    }
+
     fn decode_address(&self, address: u16) -> usize {
         let a15 = (address & 0x8000) != 0;
         let base = (address & 0x7fff) as usize;
@@ -86,7 +93,7 @@ impl Machine for Mbc2Machine {
                     self.con.put(value)
                 },
                 0x09 => { // SELDISK
-                    self.fs.select_disk(0/*CPM22*/, value)
+                    self.fs.select_disk(self.disk_set, value)
                 }
                 0x0a => { // SELTRACK
                     if self.io_byte_count == 0 {
@@ -140,9 +147,11 @@ impl Machine for Mbc2Machine {
             // NOTE 4: A "RX buffer empty" flag and a "Last Rx char was empty" flag are available in the SYSFLAG opcode 
             //         to allow 8 bit I/O.
             if self.con.status() {
-                let ch = self.con.read();
-                if ch == 3 {
+                let mut ch = self.con.read();
+                if ch == 3 { // Control C
                     self.quit = true;
+                } else if ch == 127 { // Backspace
+                    ch = 8
                 }
                 self.last_rx_is_empty = false;
                 ch
