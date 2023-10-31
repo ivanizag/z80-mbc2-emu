@@ -11,7 +11,7 @@ The emulator is based on the S220718-R240620 version of the Z80-MBC2 firmware. I
 ## Installation
 Extract the [latest zip](https://github.com/ivanizag/z80-mbc2-emu/releases) for Linux, MacOS or Windows.
 
-The Z80-MBC2 SD contents must be extraced to a directory named `sd`. You can run `download.sh` or `download.bat` to automatically download and extract the files from  https://cdn.hackaday.io/files/1599736844284832/SD-S220718-R240620-v1.zip (archived in https://web.archive.org/web/20220220074001if_/https://cdn.hackaday.io/files/1599736844284832/SD-S220718-R240620-v1.zip).
+The Z80-MBC2 SD contents must be extraced to a directory named `sd`. You can run `download.sh` or `download.bat` to automatically download and extract the files from  https://cdn.hackaday.io/files/1599736844284832/SD-S220718-R290823-v2.zip .
 
 ## Usage
 To list the boot options available, execute `z80-mbc2-emu` without parameters:
