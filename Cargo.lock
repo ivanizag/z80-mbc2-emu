@@ -75,9 +75,9 @@ dependencies = [
 
 [[package]]
 name = "iz80"
-version = "0.3.2"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7926349db666ff6408247addc982908b03a35c5f7a29e881b0ba9218303b98f"
+checksum = "6268e9cbfee2af91577802672f7cdf6fdbbd303d210ef3e9feee5f23bf5fca56"
 
 [[package]]
 name = "lazy_static"

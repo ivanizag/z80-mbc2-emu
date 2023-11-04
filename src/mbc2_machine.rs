@@ -13,6 +13,9 @@ const RAM_SIZE: usize = 128*1024;
 
 const OPCODE_NOP: u8 = 0xff;
 
+const INT_RX_MASK: u8 = 1;
+const INT_SYS_TICK_MASK: u8 = 2;
+
 pub struct Mbc2Machine {
     mem: [u8; RAM_SIZE],
     disk_set: u8,
@@ -36,7 +39,18 @@ pub struct Mbc2Machine {
     ggpu_a: u8,
     ggpu_b: u8,
 
-    trace: bool,
+    pub int_raised: bool,
+    int_status: u8,
+    rx_done: bool,
+    pub int_rx: bool,
+    pub int_sys_tick: bool,
+    sys_tick_time: u8,
+
+    cpm_warm_boot: bool,
+    spp: bool,
+    spp_fd: bool,
+
+    pub trace: bool,
 }
 
 impl Mbc2Machine {
@@ -62,6 +76,17 @@ impl Mbc2Machine {
             io_dir_b: 0,
             ggpu_a: 0,
             ggpu_b: 0,
+
+            int_raised: false,
+            int_status: 0,
+            rx_done: true,
+            int_rx: false,
+            int_sys_tick: false,
+            sys_tick_time: 0,
+
+            cpm_warm_boot: false,
+            spp: false,
+            spp_fd: false,
         
             trace: false,
         }
@@ -85,6 +110,17 @@ impl Mbc2Machine {
                 2 => base + 0x1_8000, //from 0x1_8000 to 0x1_FFFF
                 _ => base, // Default to 0
             }
+        }
+    }
+
+    pub fn tick_ms(&mut self) {
+        if self.int_sys_tick {
+            // TODO
+        }
+        if self.int_rx && self.con.status() && self.rx_done {
+            self.int_status = self.int_status | INT_RX_MASK;
+            self.int_raised = true;
+            self.rx_done = false;
         }
     }
 }
@@ -150,6 +186,31 @@ impl Machine for Mbc2Machine {
                         self.bank = value
                     }
                 },
+                0x0e => { // SETIRQ
+                    //   I/O DATA:    D7 D6 D5 D4 D3 D2 D1 D0
+                    //               ---------------------------------------------------------
+                    //                 X  X  X  X  X  X  X  0    Serial Rx IRQ not enabled
+                    //                 X  X  X  X  X  X  X  1    Serial Rx IRQ enabled
+                    //                 X  X  X  X  X  X  0  X    Systick IRQ not enabled
+                    //                 X  X  X  X  X  X  1  X    Systick IRQ enabled
+                    self.int_rx = value & INT_RX_MASK != 0;
+                    self.int_sys_tick = value & INT_SYS_TICK_MASK != 0;
+                },
+                0x0f => { // SETTICK
+                    if value > 0 {
+                        self.sys_tick_time = value;
+                    }
+                },
+                0x10 => { // SETOPT
+                    self.cpm_warm_boot = value & 1 != 0;
+                },
+                0x11 => { // SETSPP
+                    self.spp = true;
+                    self.spp_fd = value & 1 != 0;
+                },
+                //0x12 => { // WRSPP
+                //    // Todo: write value to a printer.out file.
+                //},
                 _ => implemented = false,
             }
 
@@ -184,6 +245,10 @@ impl Machine for Mbc2Machine {
             // NOTE 3: This is the only I/O that do not require any previous STORE OPCODE operation (for fast polling).
             // NOTE 4: A "RX buffer empty" flag and a "Last Rx char was empty" flag are available in the SYSFLAG opcode 
             //         to allow 8 bit I/O.
+            self.int_status = self.int_status & !INT_RX_MASK; // Reset the RX signal
+            self.int_raised = false;
+            self.rx_done = true;
+
             if self.con.status() {
                 let mut ch = self.con.read();
                 if ch == 3 { // Control C
@@ -217,14 +282,19 @@ impl Machine for Mbc2Machine {
                     //                   X  X  X  X  X  1  X  X    Serial RX char available
                     //                   X  X  X  X  0  X  X  X    Previous RX char valid
                     //                   X  X  X  X  1  X  X  X    Previous RX char was a "buffer empty" flag
+                    //                   X  X  X  0  X  X  X  X    CP/M warm boot message disabled
+                    //                   X  X  X  1  X  X  X  X    CP/M warm boot message enabled
                     //
-                    // NOTE: Currently only D0-D3 are used
+                    // NOTE: Currently only D0-D4 are used
                     let mut sysflags: u8 = 0b0010;
                     if self.con.status() {
                         sysflags += 0b0100;
                     }
                     if self.last_rx_is_empty {
                         sysflags += 0b1000;
+                    }
+                    if self.cpm_warm_boot {
+                        sysflags += 0b1_0000;
                     }
                     sysflags
                 },
@@ -262,6 +332,40 @@ impl Machine for Mbc2Machine {
                     value
                 }
                 0x87 => 0, //SDMOUNT
+                0x88 => 255, // ATXBUFF, buffers are never full
+                0x89 => { // SYSIRQ
+                    //    I/O DATA:    D7 D6 D5 D4 D3 D2 D1 D0
+                    //                ---------------------------------------------------------
+                    //                  X  X  X  X  X  X  X  0    Serial Rx IRQ not set
+                    //                  X  X  X  X  X  X  X  1    Serial Rx IRQ set
+                    //                  X  X  X  X  X  X  0  X    Systick IRQ not set
+                    //                  X  X  X  X  X  X  1  X    Systick IRQ set
+                    let value = self.int_status;
+                    self.int_status = 0;
+                    value
+                },
+                0x90 => { // GETSPP
+                    //    I/O DATA:  D7 D6 D5 D4 D3 D2 D1 D0
+                    //              ---------------------------------------------------------
+                    //                0  0  0  0  0  0  0  0    SPP emulation disabled
+                    //               D7 D6 D5 D4 D3  0  0  1    SPP emulation enabled
+                    //
+                    //     bit  | SPP Status line
+                    //    ----------------------------------
+                    //     D0  | 1 (SPP emulation enabled)
+                    //     D1  | 0 (not used)
+                    //     D2  | 0 (not used)
+                    //     D3  | ACK (active Low) -> 0
+                    //     D4  | BUSY (active High) -> 0
+                    //     D5  | PAPEREND (active High) -> 0
+                    //     D6  | SELECT (active High) -> 1
+                    //     D7  | ERROR (active Low) -> 0
+                    if self.spp {
+                        0b0100_0001 // The pseudo printer is always ready
+                    } else {
+                        0
+                    }
+                },
                 _ => {
                     implemented = false;
                     0
@@ -299,6 +403,11 @@ fn opcode_name(opcode: u8) -> &'static str {
         0x0B => "SELSECT",
         0x0C => "WRITESECT",
         0x0D => "SETBANK",
+        0x0E => "SETIRQ",
+        0x0F => "SETTICK",
+        0x10 => "SETOPT",
+        0x11 => "SETSPP",
+        0x12 => "WRSPP",
 
         0x80 => "USER KEY",
         0x81 => "GPIOA R",
@@ -308,6 +417,9 @@ fn opcode_name(opcode: u8) -> &'static str {
         0x85 => "ERRDISK",
         0x86 => "READSECT",
         0x87 => "SDMOUNT",
+        0x88 => "ATXBUFF",
+        0x89 => "SYSIRQ",
+        0x8A => "GETSPP",
 
         0xFF => "NOP",
         _ => "UNKNOWN"

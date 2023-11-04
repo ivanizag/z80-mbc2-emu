@@ -35,11 +35,27 @@ fn main() {
     machine.set_disk_set(image.disk_set);
     cpu.registers().set_pc(image.address);
     cpu.set_trace(false);
+    //machine.trace = true;
 
     // Start the cpu
     println!("{}", WELCOME);
+    let mut ref_time = std::time::Instant::now();
+    let mut reg_count = 0 as u64;
+
     while !machine.quit {
         cpu.execute_instruction(&mut machine);
+
+        reg_count += 1;
+        if reg_count % 1000 == 0 {
+            let now = std::time::Instant::now();
+            let elapsed = now - ref_time;
+            if elapsed.as_micros() > 1000 {
+                machine.tick_ms();
+                ref_time = ref_time - std::time::Duration::from_millis(1);
+            }
+        }
+
+        cpu.signal_interrupt(machine.int_raised);
 
         if cpu.is_halted() {
             println!("HALT instruction");

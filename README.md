@@ -20,6 +20,7 @@ $ ./z80-mbc2-emu
 Usage: z80-mbc2-emu IMAGE
   IMAGE can be:
 
+    basic for Basic using sd/basic47.bin
     forth for Forth using sd/forth13.bin
     autoboot for Autoboot using sd/autoboot.bin
     cpm22 for CP/M 2.2 using sd/cpm22.bin
@@ -27,6 +28,7 @@ Usage: z80-mbc2-emu IMAGE
     cpm3 for CP/M 3.0 using sd/CPMLDR.COM
     pascal for UCSD Pascal using sd/ucsdldr.bin
     collapse for Collapse OS using sd/cos.bin
+    fuzix for Fuzix OS using sd/fuzix.bin
 
 Download the images from https://cdn.hackaday.io/files/1599736844284832/S220718-R240620_IOS-Z80-MBC2.zip into the 'sd' directory.
 ```
@@ -65,7 +67,7 @@ This emulator emulates the Z80 and provides the same services given by the Atmeg
 
 ## TODO
 
-- Support interrupt driven serial transmission to support the Basic image
 - Change the way to exit to host to allow control-c to be used on the emulation.
 - User led, button and GPIO are not connected to anything
-- Adapt to the latest firmware version
+- Save the printer output to a file
+- Tick based interrupts

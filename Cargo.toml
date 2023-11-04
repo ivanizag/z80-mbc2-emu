@@ -5,7 +5,7 @@ authors = ["Ivan Izaguirre <ivanizag@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-iz80 = "^0.3.2"
+iz80 = "^0.4.0"
 #iz80 = {path = "../iz80"}
 chrono = "0.4"
 
